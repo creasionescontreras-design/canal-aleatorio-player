@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8">
+  <style>
+    html, body { margin:0; padding:0; width:100%; height:100%; background:#000; overflow:hidden; }
+    #player { width:100%; height:100%; }
+  </style>
+</head>
+<body>
+  <div id="player"></div>
+  <script>
+    var params = new URLSearchParams(window.location.search);
+    var videoId = params.get("v") || "";
+    var player;
+    var sentEnded = false;
+
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player("player", {
+        width: "100%",
+        height: "100%",
+        videoId: videoId,
+        playerVars: { playsinline: 1, autoplay: 1 },
+        events: {
+          onReady: function(event) { event.target.playVideo(); },
+          onStateChange: function(event) {
+            if (event.data === YT.PlayerState.ENDED && !sentEnded) {
+              sentEnded = true;
+              if (window.AppInventor && window.AppInventor.setWebViewString) {
+                window.AppInventor.setWebViewString("ENDED");
+              }
+            }
+          }
+        }
+      });
+    }
+
+    var tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+  </script>
+</body>
+</html>
