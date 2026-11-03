@@ -11,32 +11,66 @@
 <body>
   <div id="player"></div>
   <script>
-    var params = new URLSearchParams(window.location.search);
-    var videoId = params.get("v") || "";
-    var player;
-    var sentEnded = false;
+    const params = new URLSearchParams(window.location.search);
+    const firstVideoId = params.get("v") || "";
+    const idsText = params.get("ids") || "";
+    const shuffle = params.get("shuffle") === "1";
+    const videoIds = idsText.split(",").map(id => id.trim())
+      .filter(id => /^[a-zA-Z0-9_-]{11}$/.test(id));
+    let player;
+
+    function notifyApp(message) {
+      try {
+        if (window.AppInventor &&
+            typeof window.AppInventor.setWebViewString === "function") {
+          window.AppInventor.setWebViewString(message);
+        }
+      } catch (e) {}
+    }
 
     function onYouTubeIframeAPIReady() {
       player = new YT.Player("player", {
         width: "100%",
         height: "100%",
-        videoId: videoId,
-        playerVars: { playsinline: 1, autoplay: 1 },
+        videoId: videoIds.length ? undefined : firstVideoId,
+        playerVars: {
+          playsinline: 1, autoplay: 1, controls: 1, rel: 0,
+          origin: "https://creasionescontreras-design.github.io"
+        },
         events: {
-          onReady: function(event) { event.target.playVideo(); },
-          onStateChange: function(event) {
-            if (event.data === YT.PlayerState.ENDED && !sentEnded) {
-              sentEnded = true;
-              if (window.AppInventor && window.AppInventor.setWebViewString) {
-                window.AppInventor.setWebViewString("ENDED");
+          onReady: function(event) {
+            if (videoIds.length) {
+              let startIndex = 0;
+              if (firstVideoId) {
+                const foundIndex = videoIds.indexOf(firstVideoId);
+                if (foundIndex >= 0) startIndex = foundIndex;
               }
+              event.target.loadPlaylist(videoIds, startIndex, 0);
+              event.target.setShuffle(shuffle);
+              event.target.setLoop(false);
+            } else if (firstVideoId) {
+              event.target.playVideo();
             }
-          }
+          },
+          onStateChange: function(event) {
+            if (event.data === YT.PlayerState.PLAYING) {
+              try {
+                notifyApp("PLAYING:" + (event.target.getVideoData().video_id || ""));
+              } catch (e) {}
+            }
+            if (event.data === YT.PlayerState.ENDED && videoIds.length) {
+              const index = event.target.getPlaylistIndex();
+              const playlist = event.target.getPlaylist() || [];
+              if (index === playlist.length - 1) notifyApp("PLAYLIST_FINISHED");
+            }
+          },
+          onAutoplayBlocked: function() { notifyApp("AUTOPLAY_BLOCKED"); },
+          onError: function(event) { notifyApp("PLAYER_ERROR:" + event.data); }
         }
       });
     }
 
-    var tag = document.createElement("script");
+    const tag = document.createElement("script");
     tag.src = "https://www.youtube.com/iframe_api";
     document.head.appendChild(tag);
   </script>
