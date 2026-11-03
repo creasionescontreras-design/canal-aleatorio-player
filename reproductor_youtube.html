@@ -24,6 +24,7 @@ html, body {
 <script>
 const params = new URLSearchParams(window.location.search);
 const playlistId = params.get("list") || "";
+const videoId = params.get("v") || "";
 const shuffle = params.get("shuffle") === "1";
 
 let player;
@@ -64,7 +65,9 @@ function onYouTubeIframeAPIReady() {
           if (shuffle) {
             event.target.setShuffle(true);
           }
-        }
+        } else if (videoId) {
+  event.target.loadVideoById(videoId);
+} 
       },
 
       onStateChange: function(event) {
