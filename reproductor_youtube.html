@@ -76,6 +76,8 @@ function onYouTubeIframeAPIReady() {
         }
 
         if (event.data === YT.PlayerState.ENDED) {
+          notifyApp("ENDED");
+          
           const videos = player.getPlaylist();
           const index = player.getPlaylistIndex();
 
